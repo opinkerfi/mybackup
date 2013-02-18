@@ -1,0 +1,87 @@
+#!/usr/bin/perl
+# MySQL database dump
+# 
+# GPLv2
+# Created by: Tryggvi Farestveit <tryggvi@ok.is>
+
+use strict;
+
+# Where to keep backups
+my $datastore = "/var/spool/mybackup";
+
+my $my_user = "root"; # MySQL user with permission
+my $my_pass = ""; # MySQL user's password
+my $my_host = "localhost"; # MySQL location
+my $my_tmp = "/tmp/tmpback"; # Temp space for dump
+my $now = gettime();
+
+
+# Databases to exclude
+my %skip;
+$skip{"arsenal_is"} = 1;
+#$skip{"test"} = 1;
+#$skip{"mysql"} = 1;
+
+if(-e $my_tmp){
+	# Clear temp space
+	system("/bin/rm -rf $my_tmp/*"); 
+} else {
+	DirectoryCreate($my_tmp);
+}
+
+$my_tmp = "$my_tmp/$now";
+DirectoryCreate($my_tmp);
+
+if(!-e $datastore){
+	DirectoryCreate($datastore);
+}
+
+print "Using $my_tmp for dumps\n";
+open(CMD, "/usr/bin/mysqlshow -u $my_user --password=$my_pass -h $my_host | awk '{print \$2}'|");
+	while(<CMD>){
+		chomp($_);
+
+		if($_ ne ""){
+			if($_ ne "Databases"){
+				my $table = $_;
+				if(!$skip{$table}){
+					print "Dumping $table\n";
+					system("/usr/bin/mysqldump -u $my_user --password=$my_pass -h $my_host -d $table > $my_tmp/$table-create.sql");
+					system("/usr/bin/mysqldump -u $my_user --password=$my_pass -h $my_host -t $table > $my_tmp/$table-data.sql");
+				} else {
+					print "Skipping $table\n";
+				}
+			}
+		}
+	}
+close(CMD);
+
+system("cd $my_tmp/../; /bin/tar -cvf $datastore/myback-$now.tar $now ; /bin/gzip -9 $datastore/myback-$now.tar ; /bin/chmod 700 $datastore/myback-$now.tar.gz");
+system("rm -rf $my_tmp");
+
+
+
+sub gettime(){
+        my $now = time();
+        my ($day,$month,$year,$hour,$min,$sec) = (localtime($now))[3,4,5,2,1,0];
+
+        my $year = $year + 1900;
+        my $month = $month +1 ;
+
+        my $now = "$year-$month-$day";
+        return $now;
+}
+
+sub DirectoryCreate(){
+	my ($dir) = @_;
+
+	if(!mkdir($dir, "700")){
+		print "Error: Unable to create $dir\n";
+		exit 1;
+	} else {
+		print "Creating $dir\n";
+	}
+
+	return 1;
+}
+
