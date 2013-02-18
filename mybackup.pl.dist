@@ -18,7 +18,6 @@ my $now = gettime();
 
 # Databases to exclude
 my %skip;
-$skip{"arsenal_is"} = 1;
 #$skip{"test"} = 1;
 #$skip{"mysql"} = 1;
 
