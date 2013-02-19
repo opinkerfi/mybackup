@@ -5,6 +5,7 @@
 # Created by: Tryggvi Farestveit <tryggvi@ok.is>
 
 use strict;
+use File::Temp qw(tempdir);
 
 # Where to keep backups
 my $datastore = "/var/spool/mybackup";
@@ -21,12 +22,8 @@ my %skip;
 #$skip{"test"} = 1;
 #$skip{"mysql"} = 1;
 
-if(-e $my_tmp){
-	# Clear temp space
-	system("/bin/rm -rf $my_tmp/*"); 
-} else {
-	DirectoryCreate($my_tmp);
-}
+# Create temporary directory
+my $my_tmp = tempdir('mybackup.XXXXXXXX', CLEANUP => 1, DIR => "/tmp");
 
 $my_tmp = "$my_tmp/$now";
 DirectoryCreate($my_tmp);
@@ -56,7 +53,6 @@ open(CMD, "/usr/bin/mysqlshow -u $my_user --password=$my_pass -h $my_host | awk 
 close(CMD);
 
 system("cd $my_tmp/../; /bin/tar -cvf $datastore/myback-$now.tar $now ; /bin/gzip -9 $datastore/myback-$now.tar ; /bin/chmod 700 $datastore/myback-$now.tar.gz");
-system("rm -rf $my_tmp");
 
 
 
