@@ -6,6 +6,7 @@
 
 use strict;
 use File::Temp qw(tempdir);
+use POSIX qw(strftime);
 
 # Where to keep backups
 my $datastore = "/var/spool/mybackup";
@@ -57,14 +58,7 @@ system("cd $my_tmp/../; /bin/tar -cvf $datastore/myback-$now.tar $now ; /bin/gzi
 
 
 sub gettime(){
-        my $now = time();
-        my ($day,$month,$year,$hour,$min,$sec) = (localtime($now))[3,4,5,2,1,0];
-
-        my $year = $year + 1900;
-        my $month = $month +1 ;
-
-        my $now = "$year-$month-$day";
-        return $now;
+	return strftime "%Y-%m-%d", localtime;
 }
 
 sub DirectoryCreate(){
