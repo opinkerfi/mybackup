@@ -11,18 +11,24 @@ use POSIX qw(strftime);
 # Where to keep backups
 my $datastore = "/var/spool/mybackup";
 
+# MySQL authentication
 my $my_user = "root"; # MySQL user with permission
 my $my_pass = ""; # MySQL user's password
 my $my_host = "localhost"; # MySQL location
 my $my_tmp = "/tmp/tmpback"; # Temp space for dump
 my $now = gettime();
 
-
 # Databases to exclude
 my %skip;
 #$skip{"test"} = 1;
 #$skip{"mysql"} = 1;
 
+# Backup retention
+# - Remove backed up files after X days after successful backup
+my $retention = 1; # 1 = enable / 0 = disable
+my $retention_days = 5;
+
+#####################################################
 # Create temporary directory
 my $my_tmp = tempdir('mybackup.XXXXXXXX', CLEANUP => 1, DIR => "/tmp");
 
@@ -55,7 +61,15 @@ close(CMD);
 
 system("cd $my_tmp/../; /bin/tar -cvf $datastore/myback-$now.tar $now ; /bin/gzip -9 $datastore/myback-$now.tar ; /bin/chmod 700 $datastore/myback-$now.tar.gz");
 
-
+# Data retention
+if(-e "$datastore/myback-$now.tar.gz" && $retention){
+	# Backup was success - Will run retention
+	if(!$retention_days){
+		$retention_days = 365; # Will keep for 365 days unless other is defined
+	}
+	my $cmd = "/usr/bin/find $datastore -type f -mtime +$retention_days -exec rm -f {} \\;";
+	system($cmd);
+}
 
 sub gettime(){
 	return strftime "%Y-%m-%d", localtime;
